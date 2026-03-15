@@ -3,21 +3,22 @@ name: Sync PR Status
 # ── Triggers ─────────────────────────────────────────────────────────────────
 on:
   schedule:
-    # Runs every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
-    - cron: "0 */6 * * *"
+    # Once a day at 08:00 UTC — only open/reviewed PRs are checked,
+    # so 100+ PRs is fine even with the default GITHUB_TOKEN (5 000 req/hr).
+    - cron: "0 8 * * *"
 
-  # Also allows a manual run from the Actions tab
+  # Manual trigger from the Actions tab
   workflow_dispatch:
 
 # ── Permissions ───────────────────────────────────────────────────────────────
 permissions:
-  contents: read   # checkout
-  actions: write   # needed to trigger the deploy workflow after sync
+  contents: read
+  actions: write
 
 # ── Jobs ──────────────────────────────────────────────────────────────────────
 jobs:
   sync:
-    name: Sync PR status from GitHub API → Supabase
+    name: Sync open PR statuses → Supabase
     runs-on: ubuntu-latest
 
     steps:
@@ -35,15 +36,12 @@ jobs:
 
       - name: Run sync script
         env:
-          # Supabase — service role key lets the script write rows (bypasses RLS)
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL:  ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          # GitHub token is provided automatically; gives 5 000 API req/hr
+          # Automatically provided by GitHub — 5 000 authenticated req/hr
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run sync
 
-      # After a successful sync, kick off a fresh static build+deploy so the
-      # site reflects the updated statuses immediately.
       - name: Trigger site redeploy
         if: success()
         env:
