@@ -20,14 +20,35 @@ create table if not exists contributions (
   tags        text[] not null default '{}'
 );
 
--- Enable Row Level Security (public read-only)
+-- Enable Row Level Security
 alter table contributions enable row level security;
 
+-- Anyone can read contributions (public portfolio)
 create policy "Public read access"
   on contributions for select
   using (true);
 
+-- ── Admin write policies ──────────────────────────────────────────────────────
+-- Only authenticated users (signed in via GitHub OAuth) can write.
+-- Run these in Supabase SQL Editor → they unlock the admin dashboard.
+
+create policy "Authenticated users can insert"
+  on contributions for insert
+  to authenticated
+  with check (true);
+
+create policy "Authenticated users can update"
+  on contributions for update
+  to authenticated
+  using (true)
+  with check (true);
+
+create policy "Authenticated users can delete"
+  on contributions for delete
+  to authenticated
+  using (true);
+
 -- Index for common filters
-create index contributions_status_idx on contributions(status);
-create index contributions_type_idx   on contributions(type);
+create index contributions_status_idx     on contributions(status);
+create index contributions_type_idx       on contributions(type);
 create index contributions_created_at_idx on contributions(created_at desc);
