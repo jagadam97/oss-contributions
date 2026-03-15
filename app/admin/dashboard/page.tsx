@@ -49,20 +49,21 @@ function parsePrUrl(url: string) {
   return { owner: m[1], repo: m[2], number: m[3] };
 }
 
-async function fetchPrData(prUrl: string): Promise<Partial<FormState> | null> {
+async function fetchPrData(prUrl: string, githubToken?: string): Promise<Partial<FormState> | null> {
   const parsed = parsePrUrl(prUrl);
   if (!parsed) return null;
 
   const { owner, repo, number } = parsed;
 
+  // Use the GitHub OAuth token from the user's Supabase session when available.
+  // This gives 5 000 req/hr instead of the unauthenticated 60 req/hr limit.
+  const ghHeaders: Record<string, string> = { Accept: "application/vnd.github+json" };
+  if (githubToken) ghHeaders["Authorization"] = `Bearer ${githubToken}`;
+
   // Fetch PR + repo in parallel
   const [prRes, repoRes] = await Promise.all([
-    fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${number}`, {
-      headers: { Accept: "application/vnd.github+json" },
-    }),
-    fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-      headers: { Accept: "application/vnd.github+json" },
-    }),
+    fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${number}`, { headers: ghHeaders }),
+    fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: ghHeaders }),
   ]);
 
   if (!prRes.ok) return null;
@@ -135,6 +136,7 @@ const selectClass =
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ name: string; avatar: string } | null>(null);
+  const [githubToken, setGithubToken] = useState<string | undefined>();
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -163,6 +165,9 @@ export default function DashboardPage() {
         name: meta.user_name ?? meta.login ?? "admin",
         avatar: meta.avatar_url ?? "",
       });
+      // provider_token is the GitHub OAuth access token — use it for GitHub API
+      // calls to get 5 000 req/hr instead of the unauthenticated 60 req/hr limit.
+      setGithubToken(data.session.provider_token ?? undefined);
       loadContributions();
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,7 +201,7 @@ export default function DashboardPage() {
     }
     setFetching(true);
     setFetchError(null);
-    const data = await fetchPrData(form.pr_url);
+    const data = await fetchPrData(form.pr_url, githubToken);
     setFetching(false);
     if (!data) {
       setFetchError("Could not fetch PR — check the URL or GitHub rate limits.");
