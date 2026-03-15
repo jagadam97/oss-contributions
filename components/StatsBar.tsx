@@ -6,7 +6,13 @@ export function StatsBar({ contributions }: { contributions: Contribution[] }) {
   const merged = contributions.filter((c) => c.status === "merged").length;
   const open = contributions.filter((c) => c.status === "open").length;
   const languages = new Set(contributions.map((c) => c.language)).size;
-  const totalStars = contributions.reduce((acc, c) => acc + (c.stars ?? 0), 0);
+  // Deduplicate by repo_url so multiple PRs in the same repo count once
+  const seenRepos = new Set<string>();
+  const totalStars = contributions.reduce((acc, c) => {
+    if (!c.stars || seenRepos.has(c.repo_url)) return acc;
+    seenRepos.add(c.repo_url);
+    return acc + c.stars;
+  }, 0);
 
   const stats = [
     { label: "Merged PRs", value: merged, Icon: GitMerge, color: "text-purple-400" },
