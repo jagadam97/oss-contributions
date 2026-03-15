@@ -1,20 +1,33 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Contribution } from "@/lib/types";
 import { ContributionCard } from "./ContributionCard";
 import { FilterBar, Filters } from "./FilterBar";
 import { StatsBar } from "./StatsBar";
+import { getBrowserClient } from "@/lib/supabase-browser";
+import { Loader2 } from "lucide-react";
 
-export function ContributionsGrid({
-  contributions,
-}: {
-  contributions: Contribution[];
-}) {
+export function ContributionsGrid() {
+  const [contributions, setContributions] = useState<Contribution[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>({
     search: "",
     status: "all",
     type: "all",
   });
+
+  // Fetch live from Supabase on every page load — no redeploy needed
+  useEffect(() => {
+    const supabase = getBrowserClient();
+    supabase
+      .from("contributions")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setContributions((data as Contribution[]) ?? []);
+        setLoading(false);
+      });
+  }, []);
 
   const filtered = useMemo(() => {
     return contributions.filter((c) => {
@@ -32,6 +45,14 @@ export function ContributionsGrid({
       return true;
     });
   }, [contributions, filters]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 size={24} className="animate-spin text-indigo-400" />
+      </div>
+    );
+  }
 
   return (
     <section className="space-y-8">

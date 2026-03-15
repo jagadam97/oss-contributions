@@ -1,12 +1,9 @@
-import { getContributions } from "@/lib/supabase";
 import { ContributionsGrid } from "@/components/ContributionsGrid";
 import { Github, ExternalLink, Code2 } from "lucide-react";
 
-export const revalidate = 3600; // ISR: revalidate every hour
-
-export default async function Home() {
-  const contributions = await getContributions();
-
+// Static shell — data is fetched live client-side from Supabase,
+// so the page always shows the latest contributions without a redeploy.
+export default function Home() {
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
       {/* Ambient background blobs */}
@@ -45,11 +42,7 @@ export default async function Home() {
 
           <h1 className="text-4xl sm:text-6xl font-bold tracking-tight">
             <span className="text-slate-100">My </span>
-            <span
-              className="gradient-text"
-            >
-              Open Source
-            </span>
+            <span className="gradient-text">Open Source</span>
             <br />
             <span className="text-slate-100">Contributions</span>
           </h1>
@@ -81,9 +74,9 @@ export default async function Home() {
           </div>
         </header>
 
-        {/* Contributions */}
+        {/* Contributions — fetched live from Supabase in the browser */}
         <main className="pb-24">
-          <ContributionsGrid contributions={contributions} />
+          <ContributionsGrid />
         </main>
 
         {/* Footer */}
