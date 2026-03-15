@@ -69,10 +69,6 @@ export function ContributionCard({ c }: { c: Contribution }) {
           <Icon size={11} className={color} />
           {prNum && <span className="text-slate-400">{prNum}</span>}
           {prNum && <span>·</span>}
-          <span className="font-medium text-slate-400">
-            {pr ? `${pr.owner}/${pr.repo}` : c.project}
-          </span>
-          <span>·</span>
           <span>{verb} {ago}</span>
         </div>
       </div>
