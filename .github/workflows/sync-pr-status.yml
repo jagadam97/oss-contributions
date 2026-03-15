@@ -1,0 +1,54 @@
+name: Sync PR Status
+
+# ── Triggers ─────────────────────────────────────────────────────────────────
+on:
+  schedule:
+    # Runs every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: "0 */6 * * *"
+
+  # Also allows a manual run from the Actions tab
+  workflow_dispatch:
+
+# ── Permissions ───────────────────────────────────────────────────────────────
+permissions:
+  contents: read   # checkout
+  actions: write   # needed to trigger the deploy workflow after sync
+
+# ── Jobs ──────────────────────────────────────────────────────────────────────
+jobs:
+  sync:
+    name: Sync PR status from GitHub API → Supabase
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run sync script
+        env:
+          # Supabase — service role key lets the script write rows (bypasses RLS)
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # GitHub token is provided automatically; gives 5 000 API req/hr
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run sync
+
+      # After a successful sync, kick off a fresh static build+deploy so the
+      # site reflects the updated statuses immediately.
+      - name: Trigger site redeploy
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run deploy.yml \
+            --repo ${{ github.repository }} \
+            --ref main
