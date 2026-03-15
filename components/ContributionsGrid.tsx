@@ -66,7 +66,7 @@ export function ContributionsGrid() {
           <p className="text-sm">No contributions match your filters.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <div className="flex flex-col gap-2">
           {filtered.map((c) => (
             <ContributionCard key={c.id} c={c} />
           ))}

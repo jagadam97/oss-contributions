@@ -1,115 +1,87 @@
 "use client";
 import { Contribution } from "@/lib/types";
-import { StatusBadge } from "./StatusBadge";
-import { TypeBadge } from "./TypeBadge";
-import {
-  ExternalLink,
-  Star,
-  GitPullRequest,
-  Calendar,
-} from "lucide-react";
+import { GitMerge, GitPullRequest, XCircle, Eye, ExternalLink } from "lucide-react";
 
-function LanguageDot({ lang }: { lang: string }) {
-  const colors: Record<string, string> = {
-    TypeScript: "#3178c6",
-    JavaScript: "#f7df1e",
-    Python: "#3572A5",
-    Go: "#00ADD8",
-    Rust: "#dea584",
-    Markdown: "#083fa1",
-    default: "#8b5cf6",
-  };
-  return (
-    <span
-      className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-      style={{ backgroundColor: colors[lang] ?? colors.default }}
-    />
-  );
+const statusConfig = {
+  merged:   { Icon: GitMerge,      color: "text-purple-400", label: "Merged" },
+  open:     { Icon: GitPullRequest, color: "text-green-400",  label: "Open"   },
+  closed:   { Icon: XCircle,        color: "text-slate-500",  label: "Closed" },
+  reviewed: { Icon: Eye,            color: "text-blue-400",   label: "Reviewed" },
+};
+
+/** Extract owner/repo and PR number from a GitHub PR URL */
+function parsePrUrl(url: string) {
+  const m = url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
+  if (!m) return null;
+  return { owner: m[1], repo: m[2], number: m[3] };
+}
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins  = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days  = Math.floor(diff / 86400000);
+  const months= Math.floor(days / 30);
+  const years = Math.floor(days / 365);
+  if (years  >= 1) return `${years} year${years  > 1 ? "s" : ""} ago`;
+  if (months >= 1) return `${months} month${months > 1 ? "s" : ""} ago`;
+  if (days   >= 1) return `${days} day${days   > 1 ? "s" : ""} ago`;
+  if (hours  >= 1) return `${hours} hour${hours  > 1 ? "s" : ""} ago`;
+  return `${mins} minute${mins > 1 ? "s" : ""} ago`;
 }
 
 export function ContributionCard({ c }: { c: Contribution }) {
-  const date = c.merged_at ?? c.created_at;
-  const formattedDate = new Date(date).toLocaleDateString("en-US", {
-    month: "short",
-    year: "numeric",
-  });
+  const { Icon, color, label } = statusConfig[c.status];
+  const pr      = c.pr_url ? parsePrUrl(c.pr_url) : null;
+  const prNum   = pr ? `#${pr.number}` : null;
+  const dateStr = c.merged_at ?? c.created_at;
+  const ago     = timeAgo(dateStr);
+  const verb    = c.status === "merged" ? "Merged" : c.status === "open" ? "Opened" : "Closed";
 
   return (
-    <article className="card-hover group relative flex flex-col gap-4 rounded-2xl border border-slate-800 bg-[#0f0f1a] p-5">
-      {/* Subtle top gradient line */}
-      <div className="absolute inset-x-0 top-0 h-px rounded-t-2xl bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
-
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <a
-            href={c.repo_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-base font-semibold text-slate-100 hover:text-indigo-300 transition-colors"
-          >
-            {c.project}
-            <ExternalLink size={13} className="flex-shrink-0 opacity-60" />
-          </a>
-        </div>
-        <StatusBadge status={c.status} />
+    <a
+      href={c.pr_url ?? c.repo_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex items-center gap-4 rounded-xl border border-slate-800 bg-[#0f0f1a] px-4 py-3.5 hover:border-slate-600 hover:bg-[#13131f] transition-all"
+    >
+      {/* Repo avatar — GitHub-style coloured circle with first letter */}
+      <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0 text-sm font-bold text-slate-300 group-hover:border-slate-500 transition-colors">
+        {c.project.charAt(0).toUpperCase()}
       </div>
 
-      {/* Description */}
-      <p className="text-sm text-slate-400 leading-relaxed flex-1">
-        {c.description}
-      </p>
-
-      {/* Tags */}
-      {c.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {c.tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-2 py-0.5 rounded-md text-xs text-slate-500 bg-slate-800/60 border border-slate-700/50"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800">
-        <div className="flex items-center gap-3 text-xs text-slate-500">
-          <span className="flex items-center gap-1.5">
-            <LanguageDot lang={c.language} />
-            {c.language}
+      {/* Main content */}
+      <div className="flex-1 min-w-0">
+        {/* Title row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-slate-100 group-hover:text-white transition-colors truncate">
+            {c.description || c.project}
           </span>
-          {c.stars !== undefined && (
-            <span className="flex items-center gap-1">
-              <Star size={11} />
-              {c.stars >= 1000
-                ? `${(c.stars / 1000).toFixed(1)}k`
-                : c.stars}
-            </span>
-          )}
-          <span className="flex items-center gap-1">
-            <Calendar size={11} />
-            {formattedDate}
+          {/* Status pill — inline like GitHub */}
+          <span className={`inline-flex items-center gap-1 text-xs font-medium ${color} shrink-0`}>
+            <Icon size={12} />
+            {label}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <TypeBadge type={c.type} />
-          {c.pr_url && (
-            <a
-              href={c.pr_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-slate-500 hover:text-indigo-300 transition-colors"
-              title="View PR"
-            >
-              <GitPullRequest size={13} />
-              PR
-            </a>
-          )}
+
+        {/* Meta row */}
+        <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500 flex-wrap">
+          <Icon size={11} className={color} />
+          {prNum && <span className="text-slate-400">{prNum}</span>}
+          {prNum && <span>·</span>}
+          <span className="font-medium text-slate-400">
+            {pr ? `${pr.owner}/${pr.repo}` : c.project}
+          </span>
+          <span>·</span>
+          <span>{verb} {ago}</span>
         </div>
       </div>
-    </article>
+
+      {/* Right: external link icon */}
+      <ExternalLink
+        size={14}
+        className="text-slate-700 group-hover:text-slate-400 transition-colors shrink-0"
+      />
+    </a>
   );
 }
