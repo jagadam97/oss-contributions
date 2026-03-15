@@ -105,17 +105,30 @@ export function ContributionsGrid() {
       ) : (
         <div className="space-y-6">
           {[...grouped.entries()].map(([repoUrl, items]) => {
-            const first = items[0];
+            const first    = items[0];
             const repoName = first.project;
+            // Extract owner from repo URL e.g. https://github.com/owner/repo
+            const owner    = repoUrl.match(/github\.com\/([^/]+)/)?.[1];
+            const avatarUrl = owner ? `https://github.com/${owner}.png?size=40` : null;
 
             return (
               <div key={repoUrl} className="space-y-1.5">
                 {/* Repo group header */}
                 <div className="flex items-center gap-2 px-1 pb-1 border-b border-slate-800">
-                  {/* Coloured initial */}
-                  <div className="w-5 h-5 rounded-sm bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-300 shrink-0">
-                    {repoName.charAt(0).toUpperCase()}
-                  </div>
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarUrl}
+                      alt={owner}
+                      width={20}
+                      height={20}
+                      className="w-5 h-5 rounded-sm border border-slate-700 shrink-0 bg-slate-800"
+                    />
+                  ) : (
+                    <div className="w-5 h-5 rounded-sm bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-300 shrink-0">
+                      {repoName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <a
                     href={repoUrl}
                     target="_blank"
