@@ -13,6 +13,7 @@ import {
 
 type FormState = {
   pr_url: string;
+  title: string;
   project: string;
   repo_url: string;
   description: string;
@@ -27,6 +28,7 @@ type FormState = {
 
 const EMPTY_FORM: FormState = {
   pr_url: "",
+  title: "",
   project: "",
   repo_url: "",
   description: "",
@@ -90,11 +92,12 @@ async function fetchPrData(prUrl: string): Promise<Partial<FormState> | null> {
     .join(", ");
 
   return {
+    title: pr.title ?? "",
     project: repoData?.name ?? repo,
     repo_url: `https://github.com/${owner}/${repo}`,
     description: pr.body
       ? pr.body.replace(/<!--[\s\S]*?-->/g, "").trim().slice(0, 300)
-      : pr.title ?? "",
+      : "",
     status,
     type,
     language: repoData?.language ?? "",
@@ -214,6 +217,7 @@ export default function DashboardPage() {
   function openEdit(c: Contribution) {
     setForm({
       pr_url: c.pr_url ?? "",
+      title: c.title ?? "",
       project: c.project,
       repo_url: c.repo_url,
       description: c.description,
@@ -251,6 +255,7 @@ export default function DashboardPage() {
     const payload: Partial<Contribution> & {
       project: string; repo_url: string; description: string;
     } = {
+      title: form.title.trim() || undefined,
       project: form.project.trim(),
       repo_url: form.repo_url.trim(),
       description: form.description.trim(),
@@ -406,6 +411,15 @@ export default function DashboardPage() {
 
             {/* ── Editable fields ─────────────────────────────────────── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <InputRow label="PR Title" required>
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                  placeholder="fixing delayed torrent display on page opening"
+                  className={inputClass}
+                />
+              </InputRow>
+
               <InputRow label="Project name" required>
                 <input
                   value={form.project}

@@ -35,6 +35,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 // ─── GitHub API helpers ──────────────────────────────────────────────────────
 
 interface GitHubPR {
+  title: string;
   state: "open" | "closed";
   merged_at: string | null;
   base: {
@@ -104,7 +105,7 @@ async function main() {
   // 1. Fetch all contributions that have a PR URL
   const { data: rows, error: fetchError } = await supabase
     .from("contributions")
-    .select("id, project, pr_url, status, merged_at, stars")
+    .select("id, project, pr_url, status, merged_at, stars, title")
     .not("pr_url", "is", null);
 
   if (fetchError) {
@@ -119,7 +120,7 @@ async function main() {
 
   const contributions = rows as Pick<
     Contribution,
-    "id" | "project" | "pr_url" | "status" | "merged_at" | "stars"
+    "id" | "project" | "pr_url" | "status" | "merged_at" | "stars" | "title"
   >[];
 
   console.log(`📋  Found ${contributions.length} contributions with a PR URL.\n`);
@@ -146,12 +147,17 @@ async function main() {
     }
 
     const newStatus = toStatus(pr);
-    const newMergedAt = pr.merged_at ? pr.merged_at.split("T")[0] : null; // ISO date only
+    const newMergedAt = pr.merged_at ? pr.merged_at.split("T")[0] : null;
     const newStars = pr.base.repo.stargazers_count;
+    const newTitle = pr.title;
 
     // Build update payload — only include fields that actually changed
     const patch: Partial<Contribution> = {};
 
+    if (newTitle && newTitle !== contribution.title) {
+      patch.title = newTitle;
+      console.log(`   title: "${contribution.title ?? ""}" → "${newTitle}"`);
+    }
     if (newStatus !== currentStatus) {
       patch.status = newStatus;
       console.log(`   status: ${currentStatus} → ${newStatus}`);

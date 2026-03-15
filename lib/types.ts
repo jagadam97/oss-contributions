@@ -5,6 +5,7 @@ export interface Contribution {
   id: string;
   project: string;
   repo_url: string;
+  title?: string;
   description: string;
   pr_url?: string;
   issue_url?: string;

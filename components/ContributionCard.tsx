@@ -55,7 +55,7 @@ export function ContributionCard({ c }: { c: Contribution }) {
         {/* Title row */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-slate-100 group-hover:text-white transition-colors truncate">
-            {c.description || c.project}
+            {c.title || c.description || c.project}
           </span>
           {/* Status pill — inline like GitHub */}
           <span className={`inline-flex items-center gap-1 text-xs font-medium ${color} shrink-0`}>
