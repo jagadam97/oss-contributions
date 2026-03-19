@@ -1,6 +1,21 @@
 "use client";
 import { Contribution } from "@/lib/types";
-import { GitMerge, GitPullRequest, Code2, Star } from "lucide-react";
+
+function AsciiBar({ value, max, width = 12 }: { value: number; max: number; width?: number }) {
+  const filled = max > 0 ? Math.round((value / max) * width) : 0;
+  const empty = width - filled;
+  return (
+    <span className="text-[11px]">
+      [<span className="text-[#00ff41]">{"█".repeat(filled)}</span>
+      <span className="text-[#1a3a1a]">{"░".repeat(empty)}</span>]
+    </span>
+  );
+}
+
+function formatStars(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(0)}k+`;
+  return String(n);
+}
 
 export function StatsBar({ contributions }: { contributions: Contribution[] }) {
   const merged = contributions.filter((c) => c.status === "merged").length;
@@ -14,30 +29,51 @@ export function StatsBar({ contributions }: { contributions: Contribution[] }) {
     return acc + c.stars;
   }, 0);
 
-  const stats = [
-    { label: "Merged PRs", value: merged, Icon: GitMerge, color: "text-purple-400" },
-    { label: "Open PRs", value: open, Icon: GitPullRequest, color: "text-green-400" },
-    { label: "Languages", value: languages, Icon: Code2, color: "text-cyan-400" },
-    {
-      label: "Combined Stars",
-      value: totalStars >= 1000 ? `${(totalStars / 1000).toFixed(0)}k+` : totalStars,
-      Icon: Star,
-      color: "text-amber-400",
-    },
-  ];
+  const total = contributions.length;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {stats.map(({ label, value, Icon, color }) => (
-        <div
-          key={label}
-          className="flex flex-col items-center gap-2 rounded-2xl border border-slate-800 bg-[#0f0f1a] p-5"
-        >
-          <Icon size={20} className={color} />
-          <span className={`text-2xl font-bold ${color}`}>{value}</span>
-          <span className="text-xs text-slate-500 text-center">{label}</span>
+    <div className="border border-[#333] bg-[#0a0a0a]">
+      {/* Title bar */}
+      <div className="px-4 py-1.5 bg-[#111] border-b border-[#333] text-[11px] text-[#4a7a4a] flex items-center justify-between">
+        <span>┌─ system-stats ─────────────────────┐</span>
+        <span className="text-[#00ff41]">htop</span>
+      </div>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-[#1a1a1a]">
+        {/* Merged */}
+        <div className="px-4 py-3 space-y-1">
+          <div className="text-[10px] text-[#4a7a4a] uppercase tracking-wider">Merged</div>
+          <div className="text-lg font-bold text-[#00ff41] phosphor-glow">{merged}</div>
+          <AsciiBar value={merged} max={total} />
         </div>
-      ))}
+
+        {/* Open */}
+        <div className="px-4 py-3 space-y-1">
+          <div className="text-[10px] text-[#4a7a4a] uppercase tracking-wider">Open</div>
+          <div className="text-lg font-bold text-[#ffb800]">{open}</div>
+          <AsciiBar value={open} max={total} />
+        </div>
+
+        {/* Languages */}
+        <div className="px-4 py-3 space-y-1">
+          <div className="text-[10px] text-[#4a7a4a] uppercase tracking-wider">Langs</div>
+          <div className="text-lg font-bold text-[#00cc33]">{languages}</div>
+          <AsciiBar value={languages} max={20} />
+        </div>
+
+        {/* Stars */}
+        <div className="px-4 py-3 space-y-1">
+          <div className="text-[10px] text-[#4a7a4a] uppercase tracking-wider">★ Stars</div>
+          <div className="text-lg font-bold text-[#ffb800]">{formatStars(totalStars)}</div>
+          <AsciiBar value={Math.min(totalStars, 100000)} max={100000} />
+        </div>
+      </div>
+
+      {/* Bottom border */}
+      <div className="px-4 py-1 bg-[#111] border-t border-[#333] text-[10px] text-[#2d5a2d]">
+        └─ {total} total contributions ─────────┘
+      </div>
     </div>
   );
 }
