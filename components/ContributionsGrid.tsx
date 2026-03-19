@@ -5,7 +5,6 @@ import { ContributionCard } from "./ContributionCard";
 import { FilterBar, Filters } from "./FilterBar";
 import { StatsBar } from "./StatsBar";
 import { getBrowserClient } from "@/lib/supabase-browser";
-import { Loader2, ExternalLink } from "lucide-react";
 
 // ── Sort order: open first, then merged (newest first), then closed/reviewed last
 const STATUS_PRIORITY: Record<string, number> = {
@@ -85,25 +84,32 @@ export function ContributionsGrid() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <Loader2 size={24} className="animate-spin text-indigo-400" />
+      <div className="flex flex-col items-center justify-center py-32 text-[#00ff41] text-sm space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="cursor-blink">█</span>
+          <span>Fetching contributions from database...</span>
+        </div>
+        <div className="text-[10px] text-[#2d5a2d]">
+          SELECT * FROM contributions;
+        </div>
       </div>
     );
   }
 
   return (
-    <section className="space-y-8">
+    <section className="space-y-6">
       <StatsBar contributions={contributions} />
 
       <FilterBar filters={filters} onChange={setFilters} />
 
       {grouped.size === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-slate-600">
-          <span className="text-4xl mb-3">🔍</span>
-          <p className="text-sm">No contributions match your filters.</p>
+        <div className="flex flex-col items-center justify-center py-20 text-[#4a7a4a] text-xs space-y-2">
+          <div>$ find ./contributions -name &quot;*&quot; | grep -i &quot;{filters.search || "..."}&quot;</div>
+          <div className="text-[#ff3333]">error: no matches found</div>
+          <div className="text-[#2d5a2d]">Try adjusting your filters.</div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {[...grouped.entries()].map(([repoUrl, items]) => {
             const first    = items[0];
             const repoName = first.project;
@@ -112,39 +118,41 @@ export function ContributionsGrid() {
             const avatarUrl = owner ? `https://github.com/${owner}.png?size=40` : null;
 
             return (
-              <div key={repoUrl} className="space-y-1.5">
-                {/* Repo group header */}
-                <div className="flex items-center gap-2 px-1 pb-1 border-b border-slate-800">
+              <div key={repoUrl}>
+                {/* ── Directory-path style repo group header ── */}
+                <div className="flex items-center gap-2 px-3 py-2 bg-[#111] border border-[#333] border-b-0">
                   {avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={avatarUrl}
                       alt={owner}
-                      width={20}
-                      height={20}
-                      className="w-5 h-5 rounded-sm border border-slate-700 shrink-0 bg-slate-800"
+                      width={16}
+                      height={16}
+                      className="w-4 h-4 shrink-0 bg-[#1a1a1a]"
+                      style={{ imageRendering: "auto" }}
                     />
                   ) : (
-                    <div className="w-5 h-5 rounded-sm bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-300 shrink-0">
+                    <span className="w-4 h-4 bg-[#1a1a1a] flex items-center justify-center text-[9px] font-bold text-[#4a7a4a] shrink-0">
                       {repoName.charAt(0).toUpperCase()}
-                    </div>
+                    </span>
                   )}
                   <a
                     href={repoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm font-semibold text-slate-300 hover:text-indigo-300 transition-colors flex items-center gap-1"
+                    className="text-xs text-[#00ff41] hover:underline flex items-center gap-1"
                   >
-                    {repoName}
-                    <ExternalLink size={11} className="opacity-50" />
+                    <span className="text-[#4a7a4a]">drwxr-xr-x</span>
+                    <span className="text-[#00cc33]">{owner}/</span>
+                    <span className="text-[#00ff41] font-bold">{repoName}/</span>
                   </a>
-                  <span className="ml-auto text-xs text-slate-600">
-                    {items.length} PR{items.length > 1 ? "s" : ""}
+                  <span className="ml-auto text-[10px] text-[#2d5a2d]">
+                    ({items.length} {items.length === 1 ? "entry" : "entries"})
                   </span>
                 </div>
 
-                {/* PR rows */}
-                <div className="flex flex-col gap-1.5 pl-1">
+                {/* ── PR rows (git log style) ── */}
+                <div className="border border-[#333] border-t-[#1a1a1a] divide-y divide-[#1a1a1a]">
                   {items.map((c) => (
                     <ContributionCard key={c.id} c={c} />
                   ))}
@@ -155,9 +163,9 @@ export function ContributionsGrid() {
         </div>
       )}
 
-      <p className="text-center text-xs text-slate-600 pt-4">
-        Showing {totalFiltered} of {contributions.length} contributions
-      </p>
+      <div className="text-center text-[10px] text-[#2d5a2d] pt-2">
+        ── {totalFiltered} of {contributions.length} contributions ── EOF
+      </div>
     </section>
   );
 }

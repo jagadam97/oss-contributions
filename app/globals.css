@@ -1,50 +1,182 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0f;
-  --foreground: #e2e8f0;
+  --background: #0a0a0a;
+  --foreground: #b0ffb0;
+  --green: #00ff41;
+  --green-dim: #00cc33;
+  --green-muted: #338033;
+  --amber: #ffb800;
+  --red: #ff3333;
+  --purple: #a855f7;
+  --surface: #111111;
+  --surface-hover: #1a1a1a;
+  --border: #1a1a1a;
+  --border-bright: #333333;
+  --text-dim: #4a7a4a;
+  --text-muted: #2d5a2d;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-terminal-green: var(--green);
+  --color-terminal-green-dim: var(--green-dim);
+  --color-terminal-green-muted: var(--green-muted);
+  --color-terminal-amber: var(--amber);
+  --color-terminal-red: var(--red);
+  --color-terminal-purple: var(--purple);
+  --color-terminal-surface: var(--surface);
+  --color-terminal-surface-hover: var(--surface-hover);
+  --color-terminal-border: var(--border);
+  --color-terminal-border-bright: var(--border-bright);
+  --color-terminal-text-dim: var(--text-dim);
+  --color-terminal-text-muted: var(--text-muted);
+  --font-mono: var(--font-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, "Cascadia Code", "Fira Code", monospace;
 }
 
-/* Custom scrollbar */
+/* ── Green scrollbar ── */
 ::-webkit-scrollbar {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f0f1a;
+  background: #0a0a0a;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
+  background: #1a3a1a;
+  border-radius: 0;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #6366f1;
+  background: #00ff41;
 }
 
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #38bdf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1a3a1a #0a0a0a;
 }
 
-/* Card hover glow */
+/* ── Selection: green on black ── */
+::selection {
+  background: #00ff41;
+  color: #000000;
+}
+::-moz-selection {
+  background: #00ff41;
+  color: #000000;
+}
+
+/* ── Blinking block cursor ── */
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+.cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
+}
+
+/* ── CRT scanline overlay ── */
+.crt-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 65, 0.015) 2px,
+    rgba(0, 255, 65, 0.015) 4px
+  );
+}
+
+/* ── Subtle CRT flicker ── */
+@keyframes crt-flicker {
+  0% { opacity: 0.98; }
+  5% { opacity: 1; }
+  10% { opacity: 0.97; }
+  15% { opacity: 1; }
+  100% { opacity: 1; }
+}
+.crt-flicker {
+  animation: crt-flicker 4s linear infinite;
+}
+
+/* ── Terminal glow on focus ── */
+.terminal-glow:focus {
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.3), 0 0 20px rgba(0, 255, 65, 0.1);
+  outline: none;
+}
+
+/* ── Card hover glow ── */
 .card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.2);
-  border-color: rgba(99, 102, 241, 0.5) !important;
+  border-color: #00ff41 !important;
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.15), inset 0 0 12px rgba(0, 255, 65, 0.03);
+}
+
+/* ── Typing animation for hero ── */
+@keyframes typewriter {
+  from { max-width: 0; }
+  to { max-width: 100%; }
+}
+
+/* ── Phosphor green text shadow ── */
+.phosphor-glow {
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.5), 0 0 16px rgba(0, 255, 65, 0.2);
+}
+
+/* ── Terminal window title bar dots ── */
+.terminal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ── ASCII box border helper ── */
+.ascii-box {
+  border: 1px solid #333;
+  position: relative;
+}
+
+/* ── Subtle scanline on hover for rows ── */
+.row-scanline:hover {
+  background: linear-gradient(
+    0deg,
+    transparent 0%,
+    rgba(0, 255, 65, 0.02) 50%,
+    transparent 100%
+  );
+}
+
+/* ── Progress bar fill for stats ── */
+.progress-fill {
+  background: #00ff41;
+  box-shadow: 0 0 6px rgba(0, 255, 65, 0.4);
+}
+
+/* ── Select styling for terminal ── */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+select option {
+  background: #111111;
+  color: #b0ffb0;
+}
+
+/* ── Input placeholder ── */
+input::placeholder {
+  color: #2d5a2d;
+  opacity: 1;
 }
