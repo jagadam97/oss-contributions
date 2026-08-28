@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getBrowserClient } from "@/lib/supabase-browser";
 import type { Contribution, ContributionStatus, ContributionType } from "@/lib/types";
 import {
   LogOut, Plus, Trash2, Pencil, X, Check,
-  Loader2, ExternalLink, Github, Sparkles,
+  Loader2, ExternalLink, Github,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -108,28 +109,74 @@ async function fetchPrData(prUrl: string, githubToken?: string): Promise<Partial
   };
 }
 
+// ─── Terminal styling ────────────────────────────────────────────────────────
+// Same palette as the public portfolio: square borders, phosphor green on black.
+
+const statusColor: Record<ContributionStatus, string> = {
+  merged:   "text-[#a855f7]",
+  open:     "text-[#00ff41]",
+  closed:   "text-[#ff3333]",
+  reviewed: "text-[#3b82f6]",
+};
+
+const typeColor: Record<string, string> = {
+  "bug-fix": "text-[#ff3333]",
+  feature:   "text-[#00ff41]",
+  docs:      "text-[#ffb800]",
+  refactor:  "text-[#38bdf8]",
+  test:      "text-[#2dd4bf]",
+  chore:     "text-[#4a7a4a]",
+};
+
+const inputClass =
+  "w-full bg-[#0a0a0a] border border-[#333] px-3 py-2 text-xs text-[#b0ffb0] placeholder:text-[#2d5a2d] focus:border-[#00ff41] focus:outline-none terminal-glow transition-colors";
+
+const selectClass =
+  "w-full bg-[#0a0a0a] border border-[#333] px-3 py-2 text-xs text-[#00ff41] focus:border-[#00ff41] focus:outline-none terminal-glow transition-colors cursor-pointer";
+
+const btnPrimary =
+  "flex items-center gap-2 border border-[#00ff41] bg-[#0d1a0d] px-4 py-2 text-xs text-[#00ff41] hover:bg-[#00ff41] hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+
+const btnGhost =
+  "flex items-center gap-2 border border-[#333] px-4 py-2 text-xs text-[#4a7a4a] hover:border-[#00ff41] hover:text-[#00ff41] transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function InputRow({
-  label, children, required,
+/** Terminal window frame with a title bar, matching the portfolio hero. */
+function TerminalWindow({
+  title, children, right,
 }: {
-  label: string; children: React.ReactNode; required?: boolean;
+  title: string; children: React.ReactNode; right?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-slate-400">
-        {label} {required && <span className="text-red-400">*</span>}
-      </label>
+    <div className="border border-[#333] bg-[#0a0a0a]">
+      <div className="flex items-center gap-2 px-4 py-2 bg-[#111] border-b border-[#333]">
+        <span className="terminal-dot bg-[#ff5f57]" />
+        <span className="terminal-dot bg-[#ffbd2e]" />
+        <span className="terminal-dot bg-[#28c840]" />
+        <span className="ml-3 text-[11px] text-[#4a7a4a]">{title}</span>
+        {right && <div className="ml-auto">{right}</div>}
+      </div>
       {children}
     </div>
   );
 }
 
-const inputClass =
-  "w-full bg-[#0a0a0f] border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-colors";
-
-const selectClass =
-  "w-full bg-[#0a0a0f] border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors";
+function InputRow({
+  label, children, required, wide,
+}: {
+  label: string; children: React.ReactNode; required?: boolean; wide?: boolean;
+}) {
+  return (
+    <div className={`flex flex-col gap-1.5 ${wide ? "sm:col-span-2" : ""}`}>
+      <label className="text-[10px] uppercase tracking-wide text-[#4a7a4a]">
+        --{label}
+        {required && <span className="text-[#ff3333] ml-1">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
 
 // ─── Main page ───────────────────────────────────────────────────────────────
 
@@ -306,334 +353,421 @@ export default function DashboardPage() {
   // ─── Render ───────────────────────────────────────────────────────────────
   if (loading && !user) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#0a0a0a] crt-flicker flex items-center justify-center text-xs text-[#4a7a4a]">
+        <div className="crt-overlay" />
+        <span className="text-[#00ff41] cursor-blink mr-2">█</span>
+        authenticating...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-slate-200">
-      {/* Nav */}
-      <nav className="sticky top-0 z-20 border-b border-slate-800 bg-[#0a0a0f]/90 backdrop-blur">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-500">jagadam97 /</span>
-            <span className="font-medium">oss-contributions</span>
-            <span className="px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 text-xs border border-indigo-500/20">
-              Admin
+    <div className="min-h-screen bg-[#0a0a0a] crt-flicker">
+      {/* CRT scanline overlay */}
+      <div className="crt-overlay" />
+
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* ── Tmux-style status bar / nav ── */}
+        <nav className="sticky top-0 z-20 bg-[#0a0a0a] flex items-center justify-between py-3 border-b border-[#333] text-xs">
+          <div className="flex items-center gap-1">
+            <span className="bg-[#00ff41] text-black px-2 py-0.5 font-bold">
+              1:admin
             </span>
+            <span className="text-[#4a7a4a] ml-2">
+              {user?.name ?? "admin"}@oss:~/admin$
+            </span>
+            <span className="text-[#b0ffb0] ml-1 hidden sm:inline">
+              ./manage
+            </span>
+            <span className="text-[#00ff41] cursor-blink ml-0.5">█</span>
           </div>
           <div className="flex items-center gap-3">
-            {user && (
-              <div className="flex items-center gap-2 text-sm text-slate-400">
-                {user.avatar && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={user.avatar}
-                    alt={user.name}
-                    className="w-6 h-6 rounded-full"
-                  />
-                )}
-                <span className="hidden sm:inline">{user.name}</span>
-              </div>
+            {user?.avatar && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.avatar}
+                alt={user.name}
+                width={16}
+                height={16}
+                className="w-4 h-4 shrink-0 bg-[#1a1a1a]"
+              />
             )}
+            <Link
+              href="/"
+              className="text-[#4a7a4a] hover:text-[#00ff41] transition-colors hidden sm:inline"
+            >
+              cd ../
+            </Link>
             <button
               onClick={signOut}
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              className="flex items-center gap-1.5 text-[#4a7a4a] hover:text-[#ff3333] transition-colors"
             >
-              <LogOut size={13} /> Sign out
+              <LogOut size={13} /> exit
             </button>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">Contributions</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              {contributions.length} total
-            </p>
-          </div>
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
-          >
-            <Plus size={15} /> Add contribution
-          </button>
-        </div>
+        <div className="py-8 space-y-6">
+          {/* ── Header terminal ── */}
+          <TerminalWindow title={`${user?.name ?? "admin"}@oss — bash — 80×24`}>
+            <div className="px-5 py-4 space-y-1 text-sm leading-relaxed">
+              <div className="flex items-center gap-0">
+                <span className="text-[#00ff41]">$</span>
+                <span className="text-[#b0ffb0] ml-2">whoami</span>
+              </div>
+              <div className="text-[#00ff41] phosphor-glow font-bold">
+                {user?.name ?? "admin"}
+              </div>
 
-        {/* ── Add / Edit form ─────────────────────────────────────────────── */}
-        {showForm && (
-          <div className="rounded-2xl border border-indigo-500/30 bg-[#0f0f1a] p-6 space-y-5">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-slate-100">
-                {editingId ? "Edit contribution" : "Add contribution"}
-              </h2>
-              <button
-                onClick={closeForm}
-                className="text-slate-500 hover:text-slate-300 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
+              <div className="flex items-center gap-0 pt-2">
+                <span className="text-[#00ff41]">$</span>
+                <span className="text-[#b0ffb0] ml-2">
+                  psql -c &quot;SELECT count(*) FROM contributions&quot;
+                </span>
+              </div>
+              <div className="text-[#8ab88a] text-xs">
+                {contributions.length}{" "}
+                {contributions.length === 1 ? "row" : "rows"}
+              </div>
 
-            {/* ── PR URL (the magic field) ─────────────────────────────── */}
-            <div className="rounded-xl border border-slate-700 bg-[#0a0a0f] p-4 space-y-3">
-              <p className="text-xs font-medium text-indigo-300 flex items-center gap-1.5">
-                <Sparkles size={12} /> Paste a PR URL to auto-fill everything
-              </p>
-              <div className="flex gap-2">
-                <input
-                  value={form.pr_url}
-                  onChange={(e) => {
-                    setForm((p) => ({ ...p, pr_url: e.target.value }));
-                    setFetchError(null);
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && handleFetchPr()}
-                  placeholder="https://github.com/owner/repo/pull/123"
-                  className={`${inputClass} flex-1`}
-                />
-                <button
-                  onClick={handleFetchPr}
-                  disabled={fetching || !form.pr_url.trim()}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                >
-                  {fetching ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <Github size={14} />
-                  )}
-                  {fetching ? "Fetching…" : "Fetch"}
+              <div className="flex items-center justify-between gap-3 pt-3">
+                <div className="flex items-center gap-0 min-w-0">
+                  <span className="text-[#00ff41]">$</span>
+                  <span className="text-[#b0ffb0] ml-2 truncate">
+                    ./contrib new
+                  </span>
+                </div>
+                <button onClick={openAdd} className={`${btnPrimary} shrink-0`}>
+                  <Plus size={13} /> NEW ENTRY
                 </button>
               </div>
-              {fetchError && (
-                <p className="text-xs text-red-400">{fetchError}</p>
-              )}
             </div>
+          </TerminalWindow>
 
-            {/* ── Editable fields ─────────────────────────────────────── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <InputRow label="PR Title" required>
-                <input
-                  value={form.title}
-                  onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                  placeholder="fixing delayed torrent display on page opening"
-                  className={inputClass}
-                />
-              </InputRow>
-
-              <InputRow label="Project name" required>
-                <input
-                  value={form.project}
-                  onChange={(e) => setForm((p) => ({ ...p, project: e.target.value }))}
-                  placeholder="Next.js"
-                  className={inputClass}
-                />
-              </InputRow>
-
-              <InputRow label="Repo URL" required>
-                <input
-                  value={form.repo_url}
-                  onChange={(e) => setForm((p) => ({ ...p, repo_url: e.target.value }))}
-                  placeholder="https://github.com/vercel/next.js"
-                  className={inputClass}
-                />
-              </InputRow>
-
-              <InputRow label="Description" required>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                  placeholder="What did you fix / add?"
-                  rows={3}
-                  className={`${inputClass} resize-none col-span-full`}
-                />
-              </InputRow>
-
-              <InputRow label="Status">
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as ContributionStatus }))}
-                  className={selectClass}
+          {/* ── Add / Edit form ─────────────────────────────────────────────── */}
+          {showForm && (
+            <TerminalWindow
+              title={`nano — ${editingId ? "edit" : "new"}-contribution.yaml`}
+              right={
+                <button
+                  onClick={closeForm}
+                  className="text-[#4a7a4a] hover:text-[#ff3333] transition-colors"
+                  title="Close"
                 >
-                  {(["merged", "open", "closed", "reviewed"] as ContributionStatus[]).map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </InputRow>
-
-              <InputRow label="Type">
-                <select
-                  value={form.type}
-                  onChange={(e) => setForm((p) => ({ ...p, type: e.target.value as ContributionType }))}
-                  className={selectClass}
-                >
-                  {(["bug-fix", "feature", "docs", "refactor", "test", "chore"] as ContributionType[]).map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </InputRow>
-
-              <InputRow label="Language">
-                <input
-                  value={form.language}
-                  onChange={(e) => setForm((p) => ({ ...p, language: e.target.value }))}
-                  placeholder="TypeScript"
-                  className={inputClass}
-                />
-              </InputRow>
-
-              <InputRow label="Stars">
-                <input
-                  type="number"
-                  value={form.stars}
-                  onChange={(e) => setForm((p) => ({ ...p, stars: e.target.value }))}
-                  placeholder="42000"
-                  className={inputClass}
-                />
-              </InputRow>
-
-              <InputRow label="Merged at">
-                <input
-                  type="date"
-                  value={form.merged_at}
-                  onChange={(e) => setForm((p) => ({ ...p, merged_at: e.target.value }))}
-                  className={inputClass}
-                />
-              </InputRow>
-
-              <InputRow label="Tags (comma-separated)">
-                <input
-                  value={form.tags}
-                  onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
-                  placeholder="routing, ssr, performance"
-                  className={inputClass}
-                />
-              </InputRow>
-
-              <InputRow label="Issue URL">
-                <input
-                  value={form.issue_url}
-                  onChange={(e) => setForm((p) => ({ ...p, issue_url: e.target.value }))}
-                  placeholder="https://github.com/owner/repo/issues/456"
-                  className={inputClass}
-                />
-              </InputRow>
-            </div>
-
-            {error && (
-              <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-                {error}
-              </p>
-            )}
-
-            <div className="flex gap-3 pt-1">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors disabled:opacity-60"
-              >
-                {saving ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Check size={14} />
-                )}
-                {saving ? "Saving…" : editingId ? "Update" : "Save"}
-              </button>
-              <button
-                onClick={closeForm}
-                className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm hover:text-slate-200 hover:border-slate-500 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Contributions list ──────────────────────────────────────────── */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 size={22} className="animate-spin text-indigo-400" />
-          </div>
-        ) : contributions.length === 0 ? (
-          <div className="text-center py-20 text-slate-600 text-sm">
-            No contributions yet. Hit &ldquo;Add contribution&rdquo; to get started.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {contributions.map((c) => (
-              <div
-                key={c.id}
-                className="flex items-center gap-4 rounded-xl border border-slate-800 bg-[#0f0f1a] px-4 py-3 hover:border-slate-700 transition-colors"
-              >
-                {/* Status dot */}
-                <span
-                  className={`w-2 h-2 rounded-full shrink-0 ${
-                    c.status === "merged"
-                      ? "bg-purple-400"
-                      : c.status === "open"
-                      ? "bg-green-400"
-                      : "bg-slate-500"
-                  }`}
-                />
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-slate-200 truncate">
-                      {c.project}
+                  <X size={14} />
+                </button>
+              }
+            >
+              <div className="px-5 py-5 space-y-5">
+                {/* ── PR URL (the magic field) ─────────────────────────────── */}
+                <div className="border border-[#333] bg-[#111] p-4 space-y-3">
+                  <div className="flex items-center gap-0 text-xs">
+                    <span className="text-[#00ff41]">$</span>
+                    <span className="text-[#b0ffb0] ml-2">
+                      gh pr view --json &lt;url&gt;
                     </span>
-                    <span className="text-xs text-slate-500 shrink-0">
-                      {c.type}
+                    <span className="text-[#2d5a2d] ml-2 hidden sm:inline">
+                      # autofills every field below
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 truncate mt-0.5">
-                    {c.description}
-                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      value={form.pr_url}
+                      onChange={(e) => {
+                        setForm((p) => ({ ...p, pr_url: e.target.value }));
+                        setFetchError(null);
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && handleFetchPr()}
+                      placeholder="https://github.com/owner/repo/pull/123"
+                      className={`${inputClass} flex-1`}
+                    />
+                    <button
+                      onClick={handleFetchPr}
+                      disabled={fetching || !form.pr_url.trim()}
+                      className={`${btnPrimary} shrink-0`}
+                    >
+                      {fetching ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Github size={13} />
+                      )}
+                      {fetching ? "FETCHING…" : "FETCH"}
+                    </button>
+                  </div>
+                  {fetchError && (
+                    <p className="text-[11px] text-[#ff3333]">
+                      error: {fetchError}
+                    </p>
+                  )}
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1 shrink-0">
-                  {c.pr_url && (
-                    <a
-                      href={c.pr_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors"
-                      title="View PR"
+                {/* ── Editable fields ─────────────────────────────────────── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputRow label="title" required>
+                    <input
+                      value={form.title}
+                      onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                      placeholder="fixing delayed torrent display on page opening"
+                      className={inputClass}
+                    />
+                  </InputRow>
+
+                  <InputRow label="project" required>
+                    <input
+                      value={form.project}
+                      onChange={(e) => setForm((p) => ({ ...p, project: e.target.value }))}
+                      placeholder="Next.js"
+                      className={inputClass}
+                    />
+                  </InputRow>
+
+                  <InputRow label="repo-url" required>
+                    <input
+                      value={form.repo_url}
+                      onChange={(e) => setForm((p) => ({ ...p, repo_url: e.target.value }))}
+                      placeholder="https://github.com/vercel/next.js"
+                      className={inputClass}
+                    />
+                  </InputRow>
+
+                  <InputRow label="issue-url">
+                    <input
+                      value={form.issue_url}
+                      onChange={(e) => setForm((p) => ({ ...p, issue_url: e.target.value }))}
+                      placeholder="https://github.com/owner/repo/issues/456"
+                      className={inputClass}
+                    />
+                  </InputRow>
+
+                  <InputRow label="description" required wide>
+                    <textarea
+                      value={form.description}
+                      onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                      placeholder="What did you fix / add?"
+                      rows={3}
+                      className={`${inputClass} resize-none`}
+                    />
+                  </InputRow>
+
+                  <InputRow label="status">
+                    <select
+                      value={form.status}
+                      onChange={(e) => setForm((p) => ({ ...p, status: e.target.value as ContributionStatus }))}
+                      className={selectClass}
                     >
-                      <ExternalLink size={14} />
-                    </a>
-                  )}
+                      {(["merged", "open", "closed", "reviewed"] as ContributionStatus[]).map((s) => (
+                        <option key={s} value={s}>{s.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </InputRow>
+
+                  <InputRow label="type">
+                    <select
+                      value={form.type}
+                      onChange={(e) => setForm((p) => ({ ...p, type: e.target.value as ContributionType }))}
+                      className={selectClass}
+                    >
+                      {(["bug-fix", "feature", "docs", "refactor", "test", "chore"] as ContributionType[]).map((t) => (
+                        <option key={t} value={t}>{t.toUpperCase()}</option>
+                      ))}
+                    </select>
+                  </InputRow>
+
+                  <InputRow label="language">
+                    <input
+                      value={form.language}
+                      onChange={(e) => setForm((p) => ({ ...p, language: e.target.value }))}
+                      placeholder="TypeScript"
+                      className={inputClass}
+                    />
+                  </InputRow>
+
+                  <InputRow label="stars">
+                    <input
+                      type="number"
+                      value={form.stars}
+                      onChange={(e) => setForm((p) => ({ ...p, stars: e.target.value }))}
+                      placeholder="42000"
+                      className={inputClass}
+                    />
+                  </InputRow>
+
+                  <InputRow label="merged-at">
+                    <input
+                      type="date"
+                      value={form.merged_at}
+                      onChange={(e) => setForm((p) => ({ ...p, merged_at: e.target.value }))}
+                      className={inputClass}
+                    />
+                  </InputRow>
+
+                  <InputRow label="tags">
+                    <input
+                      value={form.tags}
+                      onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
+                      placeholder="routing, ssr, performance"
+                      className={inputClass}
+                    />
+                  </InputRow>
+                </div>
+
+                {error && (
+                  <p className="text-[11px] text-[#ff3333] border border-[#ff3333]/30 bg-[#1a0a0a] px-3 py-2">
+                    error: {error}
+                  </p>
+                )}
+
+                <div className="flex gap-3 pt-1">
                   <button
-                    onClick={() => openEdit(c)}
-                    className="p-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-slate-800 transition-colors"
-                    title="Edit"
+                    onClick={handleSave}
+                    disabled={saving}
+                    className={btnPrimary}
                   >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Delete "${c.project}"?`)) handleDelete(c.id);
-                    }}
-                    disabled={deletingId === c.id}
-                    className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
-                    title="Delete"
-                  >
-                    {deletingId === c.id ? (
-                      <Loader2 size={14} className="animate-spin" />
+                    {saving ? (
+                      <Loader2 size={13} className="animate-spin" />
                     ) : (
-                      <Trash2 size={14} />
+                      <Check size={13} />
                     )}
+                    {saving ? "WRITING…" : editingId ? "UPDATE" : "SAVE"}
+                  </button>
+                  <button onClick={closeForm} className={btnGhost}>
+                    <X size={13} /> CANCEL
                   </button>
                 </div>
               </div>
-            ))}
+            </TerminalWindow>
+          )}
+
+          {/* ── Contributions list ──────────────────────────────────────────── */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-32 text-[#00ff41] text-sm space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="cursor-blink">█</span>
+                <span>Fetching contributions from database...</span>
+              </div>
+              <div className="text-[10px] text-[#2d5a2d]">
+                SELECT * FROM contributions ORDER BY created_at DESC;
+              </div>
+            </div>
+          ) : contributions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-[#4a7a4a] text-xs space-y-2">
+              <div>$ ls ./contributions</div>
+              <div className="text-[#ff3333]">error: directory is empty</div>
+              <div className="text-[#2d5a2d]">
+                Run &quot;NEW ENTRY&quot; to add your first contribution.
+              </div>
+            </div>
+          ) : (
+            <div>
+              {/* Table header */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-[#111] border border-[#333] border-b-0 text-[10px] text-[#4a7a4a]">
+                <span>drwxr-xr-x</span>
+                <span className="text-[#00ff41]">./contributions</span>
+                <span className="ml-auto text-[#2d5a2d]">
+                  ({contributions.length}{" "}
+                  {contributions.length === 1 ? "entry" : "entries"})
+                </span>
+              </div>
+
+              {/* Rows */}
+              <div className="border border-[#333] border-t-[#1a1a1a] divide-y divide-[#1a1a1a]">
+                {contributions.map((c) => {
+                  const pr = c.pr_url ? parsePrUrl(c.pr_url) : null;
+                  return (
+                    <div
+                      key={c.id}
+                      className="group flex items-center gap-2 border-l-2 border-transparent hover:border-[#00ff41] px-3 py-2 hover:bg-[#0d1a0d] transition-all row-scanline text-xs"
+                    >
+                      {/* Status bracket badge */}
+                      <span className={`font-bold shrink-0 ${statusColor[c.status]}`}>
+                        [{c.status.toUpperCase()}]
+                      </span>
+
+                      {/* PR number */}
+                      {pr && (
+                        <span className="text-[#4a7a4a] shrink-0 hidden sm:inline">
+                          #{pr.number}
+                        </span>
+                      )}
+
+                      <span className="text-[#333] shrink-0 hidden sm:inline">—</span>
+
+                      {/* Title */}
+                      <span className="text-[#b0ffb0] group-hover:text-[#00ff41] transition-colors truncate min-w-0 flex-1">
+                        {c.title || c.description || c.project}
+                      </span>
+
+                      {/* Type badge */}
+                      <span
+                        className={`shrink-0 hidden md:inline ${
+                          typeColor[c.type] ?? "text-[#4a7a4a]"
+                        }`}
+                      >
+                        [{c.type.toUpperCase()}]
+                      </span>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 shrink-0 ml-1">
+                        {c.pr_url && (
+                          <a
+                            href={c.pr_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 text-[#2d5a2d] hover:text-[#00ff41] transition-colors"
+                            title="View PR"
+                          >
+                            <ExternalLink size={13} />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => openEdit(c)}
+                          className="p-1 text-[#2d5a2d] hover:text-[#00ff41] transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`rm -f "${c.project}" — are you sure?`)) handleDelete(c.id);
+                          }}
+                          disabled={deletingId === c.id}
+                          className="p-1 text-[#2d5a2d] hover:text-[#ff3333] transition-colors disabled:opacity-50"
+                          title="Delete"
+                        >
+                          {deletingId === c.id ? (
+                            <Loader2 size={13} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={13} />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Terminal status bar footer ── */}
+        <footer className="border-t border-[#333] py-4 text-[11px] text-[#2d5a2d] flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <span>
+              SESSION: <span className="text-[#00ff41]">authenticated</span>
+            </span>
+            <span className="text-[#333]">│</span>
+            <span>
+              CONN: supabase <span className="text-[#00ff41]">●</span>
+            </span>
+            <span className="text-[#333]">│</span>
+            <span>MODE: rw</span>
           </div>
-        )}
+          <div className="flex items-center gap-3">
+            <span>{contributions.length} rows</span>
+            <span className="text-[#333]">│</span>
+            <span>EOF</span>
+          </div>
+        </footer>
       </div>
     </div>
   );

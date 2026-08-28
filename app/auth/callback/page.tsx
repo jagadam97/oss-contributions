@@ -36,9 +36,35 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-4">
-      <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-      <p className="text-sm text-slate-500">Signing you in…</p>
+    <div className="min-h-screen bg-[#0a0a0a] crt-flicker flex items-center justify-center px-4">
+      <div className="crt-overlay" />
+
+      <div className="relative z-10 w-full max-w-md border border-[#333] bg-[#0a0a0a]">
+        {/* Title bar */}
+        <div className="flex items-center gap-2 px-4 py-2 bg-[#111] border-b border-[#333]">
+          <span className="terminal-dot bg-[#ff5f57]" />
+          <span className="terminal-dot bg-[#ffbd2e]" />
+          <span className="terminal-dot bg-[#28c840]" />
+          <span className="ml-3 text-[11px] text-[#4a7a4a]">
+            oauth — bash — 80&times;24
+          </span>
+        </div>
+
+        {/* Content */}
+        <div className="px-5 py-5 space-y-1 text-sm leading-relaxed">
+          <div className="flex items-center gap-0">
+            <span className="text-[#00ff41]">$</span>
+            <span className="text-[#b0ffb0] ml-2">gh auth status</span>
+          </div>
+          <div className="text-[#8ab88a] text-xs pt-1">
+            exchanging code for session token...
+          </div>
+          <div className="flex items-center gap-2 pt-2 text-xs text-[#00ff41]">
+            <span className="cursor-blink">█</span>
+            <span>signing you in</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
